@@ -17,6 +17,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import style from "../components/styles";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import AddIcon from '@mui/icons-material/Add';
 
 export const DragDrop = () => {
   const initialItems = ["Item 1", "Item 2", "Item 3", "Item 4"];
@@ -44,10 +45,27 @@ export const DragDrop = () => {
   const [editingListTitle, setEditingListTitle] = useState("");
   const [editListIndex, setEditListIndex] = useState(null); // New state for tracking which list is being edited
 
-  // Menu state
+  // Menu state for lists
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [activeListIndex, setActiveListIndex] = useState(null);
   const openMenu = Boolean(menuAnchorEl);
+
+  // Menu state for items
+  const [itemMenuAnchorEl, setItemMenuAnchorEl] = useState(null);
+  const [activeItemIndex, setActiveItemIndex] = useState(null);
+  const [activeItemListId, setActiveItemListId] = useState(null);
+  const openItemMenu = Boolean(itemMenuAnchorEl);
+
+  // State for editing items
+  const [openEditItemDialog, setOpenEditItemDialog] = useState(false);
+  const [editingItemText, setEditingItemText] = useState("");
+  const [editingItemListId, setEditingItemListId] = useState(null);
+  const [editingItemIndex, setEditingItemIndex] = useState(null);
+
+  // State for deleting items
+  const [openDeleteItemConfirmDialog, setOpenDeleteItemConfirmDialog] = useState(false);
+  const [deleteItemListId, setDeleteItemListId] = useState(null);
+  const [deleteItemIndex, setDeleteItemIndex] = useState(null);
 
   const dragItemIndex = useRef(null);
   const dragOverItemIndex = useRef(null);
@@ -56,7 +74,7 @@ export const DragDrop = () => {
     dragOverItemIndex.current = index;
   };
 
-  const handleDragEnd = () => {
+  const handleDragEnd = () => { 
     if (
       !draggedListId ||
       dragItemIndex.current === null ||
@@ -251,17 +269,32 @@ export const DragDrop = () => {
     setNewItemText(event.target.value);
   };
 
-  // Menu handlers
+  // List Menu handlers
   const handleMenuOpen = (event, index) => {
     event.stopPropagation(); 
     setMenuAnchorEl(event.currentTarget);
     setActiveListIndex(index);
-   
   };
+
 
   const handleMenuClose = () => {
     setMenuAnchorEl(null);
     setActiveListIndex(null);
+  };
+
+  // Item Menu handlers
+  const handleItemMenuOpen = (event, listId, itemIndex) => {
+    event.stopPropagation();
+    event.preventDefault(); // Prevent dragging when clicking on menu
+    setItemMenuAnchorEl(event.currentTarget);
+    setActiveItemListId(listId);
+    setActiveItemIndex(itemIndex);
+  };
+
+  const handleItemMenuClose = () => {
+    setItemMenuAnchorEl(null);
+    setActiveItemListId(null);
+    setActiveItemIndex(null);
   };
 
   // Delete list handlers
@@ -286,19 +319,16 @@ export const DragDrop = () => {
       setCustomLists(updatedCustomLists);
       handleCloseDeleteConfirm();
     }
-  
   };
 
   // Edit list handlers
   const handleOpenEditDialog = () => {
-    // if (activeListIndex !== null) {
-    //   setEditingListTitle(customLists[activeListIndex].title);
-    //   setEditListIndex(activeListIndex); 
-    //   setOpenEditListDialog(true);
-    //   handleMenuClose();
-    // }
-    setOpenEditListDialog(true);
-    handleMenuClose();
+    if (activeListIndex !== null) {
+      setEditingListTitle(customLists[activeListIndex].title);
+      setEditListIndex(activeListIndex);
+      setOpenEditListDialog(true);
+      handleMenuClose();
+    }
   };
 
   const handleCloseEditDialog = () => {
@@ -308,17 +338,94 @@ export const DragDrop = () => {
   };
 
   const handleSaveEditList = () => {
-    if (editListIndex !== null && editingListTitle.trim() !== "") {
-      
-      
+    if (editListIndex !== null && editingListTitle.trim() !== "") {  
       const updatedCustomLists = [...customLists];
       updatedCustomLists[editListIndex].title = editingListTitle;
       setCustomLists(updatedCustomLists);
-      
-     
       handleCloseEditDialog();
     } 
   };
+
+  // Edit item handlers
+  const handleOpenEditItemDialog = () => {
+    if (activeItemListId !== null && activeItemIndex !== null) {
+      let currentItemText = "";
+      
+      if (typeof activeItemListId === "string" && activeItemListId.startsWith("custom")) {
+        const customListIndex = parseInt(activeItemListId.split("-")[1]);
+        currentItemText = customLists[customListIndex].items[activeItemIndex];
+      } else if (typeof activeItemListId === "number") {
+        const lists = { 1: list1, 2: list2, 3: list3 };
+        currentItemText = lists[activeItemListId][activeItemIndex];
+      }
+      
+      setEditingItemText(currentItemText);
+      setEditingItemListId(activeItemListId); // Store list ID for when dialog closes
+      setEditingItemIndex(activeItemIndex); // Store item index for when dialog closes
+      setOpenEditItemDialog(true);
+      handleItemMenuClose();
+    }
+  };
+
+  const handleCloseEditItemDialog = () => {
+    setOpenEditItemDialog(false);
+    setEditingItemText("");
+    setEditingItemListId(null);
+    setEditingItemIndex(null);
+  };
+
+  const handleSaveEditItem = () => {
+    if (editingItemListId !== null && editingItemIndex !== null && editingItemText.trim() !== "") {
+      if (typeof editingItemListId === "string" && editingItemListId.startsWith("custom")) {
+        const customListIndex = parseInt(editingItemListId.split("-")[1]);
+        const updatedCustomLists = [...customLists];
+        updatedCustomLists[customListIndex].items[editingItemIndex] = editingItemText;
+        setCustomLists(updatedCustomLists);
+      } else if (typeof editingItemListId === "number") {
+        const lists = { 1: [...list1], 2: [...list2], 3: [...list3] };
+        const setLists = { 1: setList1, 2: setList2, 3: setList3 };
+        lists[editingItemListId][editingItemIndex] = editingItemText;
+        setLists[editingItemListId](lists[editingItemListId]);
+      }
+      
+      handleCloseEditItemDialog();
+    }
+  };
+
+  // Delete item handlers
+  const handleOpenDeleteItemConfirm = () => {
+    setDeleteItemListId(activeItemListId); // Store list ID for when dialog closes
+    setDeleteItemIndex(activeItemIndex); // Store item index for when dialog closes
+    setOpenDeleteItemConfirmDialog(true);
+    handleItemMenuClose();
+  };
+
+  const handleCloseDeleteItemConfirm = () => {
+    setOpenDeleteItemConfirmDialog(false);
+    setDeleteItemListId(null);
+    setDeleteItemIndex(null);
+  };
+
+  const handleDeleteItem = () => {
+    if (deleteItemListId !== null && deleteItemIndex !== null) {
+      if (typeof deleteItemListId === "string" && deleteItemListId.startsWith("custom"))
+      {
+        const customListIndex = parseInt(deleteItemListId.split("-")[1]);
+        const updatedCustomLists = [...customLists];
+        updatedCustomLists[customListIndex].items.splice(deleteItemIndex, 1);
+        setCustomLists(updatedCustomLists);
+      }
+      else if (typeof deleteItemListId === "number") 
+      {
+        const lists = { 1: [...list1], 2: [...list2], 3: [...list3] };
+        const setLists = { 1: setList1, 2: setList2, 3: setList3 };
+        lists[deleteItemListId].splice(deleteItemIndex, 1);
+        setLists[deleteItemListId](lists[deleteItemListId]);
+      }
+      
+      handleCloseDeleteItemConfirm();
+    }
+  }; 
 
   const getListItems = (listId) => {
     if (listId === 1) return list1;
@@ -350,7 +457,7 @@ export const DragDrop = () => {
           <DialogTitle>Add Title of a New List</DialogTitle>
           <DialogContent>
             <TextField
-              autoFocus
+              
               margin="dense"
               fullWidth
               placeholder="Please add a Title"
@@ -360,10 +467,10 @@ export const DragDrop = () => {
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleCloseNewListDialog} sx={style.cancelColor}>
-              Cancel
+            <Button onClick={handleCloseNewListDialog} sx={style.CANCELColor}>
+              CANCEL
             </Button>
-            <Button onClick={handleAddNewList} sx={style.addColor} autoFocus>
+            <Button onClick={handleAddNewList} sx={style.addColor} >
               Add
             </Button>
           </DialogActions>
@@ -378,7 +485,7 @@ export const DragDrop = () => {
             key={customList.id}
             sx={{
               ...style.customListBox,
-              height: customList.items.length > 2 ? "auto" : 200,
+              height: customList.items.length > 0 ? "auto" : 160,
             }}
             onDragOver={handleDragOver}
             onDrop={(e) => {
@@ -395,7 +502,7 @@ export const DragDrop = () => {
             <Typography variant="h6" sx={style.listTitleTypography}>
               {customList.title}
               <IconButton
-                sx={style.button}
+                sx={style.listMenuButton}
                 onClick={(e) => handleMenuOpen(e, index)}
                 aria-label="more"
                 aria-controls="list-menu"
@@ -418,17 +525,30 @@ export const DragDrop = () => {
                   sx={style.listItem}
                 >
                   <ListItemText primary={item} />
+                  <IconButton
+                    size="small"
+                    sx={style.itemMenuButton}
+                    onClick={(e) => handleItemMenuOpen(e, customList.id, itemIndex)}
+                    aria-label="item options"
+                  >
+                    <MoreHorizIcon />
+                  </IconButton>
                 </ListItem>
               ))}
             </List>
+           
+           
             <Button
               size="small"
               variant="contained"
               onClick={() => handleOpenAddItemDialog(index)}
               sx={style.addItemButton}
             >
-              Add Item
+               <IconButton><AddIcon/></IconButton>
+             Add Item
             </Button>
+            
+            
           </Box>
         ))}
       </Box>
@@ -448,7 +568,22 @@ export const DragDrop = () => {
         </MenuItem>
       </Menu>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Menu for item options */}
+      <Menu
+        id="item-menu"
+        anchorEl={itemMenuAnchorEl}
+        open={openItemMenu}
+        onClose={handleItemMenuClose}
+      >
+        <MenuItem onClick={handleOpenEditItemDialog} sx={style.edit}>
+          Edit
+        </MenuItem>
+        <MenuItem onClick={handleOpenDeleteItemConfirm} sx={style.delete}>
+          Delete
+        </MenuItem>
+      </Menu>
+
+      {/* Delete List Confirmation Dialog */}
       <Dialog
         open={openDeleteConfirmDialog}
         onClose={handleCloseDeleteConfirm}
@@ -461,11 +596,33 @@ export const DragDrop = () => {
           <Typography>Are you sure you want to delete this list?</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDeleteConfirm} sx={style.cancelColor}>
-            Cancel
+          <Button onClick={handleCloseDeleteConfirm} sx={style.CANCELColor}>
+            CANCEL
           </Button>
-          <Button onClick={handleDeleteList} color="error" autoFocus>
+          <Button onClick={handleDeleteList} color="error" >
             Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Item Confirmation Dialog */}
+      <Dialog
+        open={openDeleteItemConfirmDialog}
+        onClose={handleCloseDeleteItemConfirm}
+        aria-labelledby="delete-item-confirmation-dialog"
+      >
+        <DialogTitle id="delete-item-confirmation-dialog">
+          Confirm Delete Item
+        </DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete this item?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteItemConfirm} sx={style.CANCELColor}>
+            CANCEL
+          </Button>
+          <Button onClick={handleDeleteItem} color="error" >
+            CONFIRM
           </Button>
         </DialogActions>
       </Dialog>
@@ -475,7 +632,7 @@ export const DragDrop = () => {
         <DialogTitle>Add New Item</DialogTitle>
         <DialogContent>
           <TextField
-            autoFocus
+            
             value={newItemText}
             onChange={handleNewItemInputChange}
             margin="dense"
@@ -485,16 +642,16 @@ export const DragDrop = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseAddItemDialog} sx={style.cancelColor}>
-            Cancel
+          <Button onClick={handleCloseAddItemDialog} sx={style.CANCELColor}>
+            CANCEL
           </Button>
-          <Button onClick={handleAddNewItem} sx={style.addColor} autoFocus>
-            Add
+          <Button onClick={handleAddNewItem} sx={style.addColor} >
+            ADD
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Dialog for editing list title - improved */}
+      {/* Dialog for editing list title */}
       <Dialog 
         open={openEditListDialog} 
         onClose={handleCloseEditDialog}
@@ -504,7 +661,7 @@ export const DragDrop = () => {
         <DialogTitle>Edit List Title</DialogTitle>
         <DialogContent>
           <TextField
-            autoFocus
+            
             margin="dense"
             fullWidth
             label="List Title"
@@ -515,19 +672,53 @@ export const DragDrop = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseEditDialog} sx={style.cancelColor}>
-            Cancel
+          <Button onClick={handleCloseEditDialog} sx={style.CANCELColor}>
+            CANCEL
           </Button>
           <Button 
             onClick={handleSaveEditList} 
             sx={style.addColor} 
-            autoFocus
+            
             disabled={!editingListTitle.trim()}
           >
             Save
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+
+      {/* Dialog for editing item text */}
+      <Dialog 
+        open={openEditItemDialog} 
+        onClose={handleCloseEditItemDialog}
+        fullWidth
+        maxWidth="sm">
+        <DialogTitle>Edit Item</DialogTitle>
+        <DialogContent>
+          <TextField
+            
+            margin="dense"
+            fullWidth
+            label="Item Text"
+            placeholder="Enter item text"
+            variant="outlined" 
+            value={editingItemText}
+            onChange={(e) => setEditingItemText(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEditItemDialog} sx={style.CANCELColor}>
+            CANCEL
+          </Button>
+          <Button 
+            onClick={handleSaveEditItem} 
+            sx={style.addColor} 
+            
+            disabled={!editingItemText.trim()}
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box> 
   );
 };

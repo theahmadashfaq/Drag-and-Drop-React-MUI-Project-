@@ -21,61 +21,55 @@ const styles = {
   cancelColor: { color: "red" },
   addColor: { backgroundColor: "blue", color: "white" },
 
-  // Horizontal 
+  // Horizontal
   horizontalScrollContainer: {
     display: "flex",
     overflowX: "auto",
     padding: "20px",
-   
     gap: "16px",
-  
     "&::-webkit-scrollbar": {
-      display:"none"
+      display: "none",
     },
-  
   },
 
   customListBox: {
     flexShrink: 0,
     width: "350px",
-    
-    maxHeight: "500px", 
+    maxHeight: "500px",
     border: "2px solid white",
     backgroundColor: "#EBECF0",
     borderRadius: "8px",
     padding: "16px",
     cursor: "grab",
     color: "black",
-    display: "flex", 
+    display: "flex",
     flexDirection: "column",
-
   },
 
   listContainer: {
-  
     flexGrow: 1,
     padding: 0,
-   
   },
 
   listTitleTypography: {
-    
     marginBottom: "12px",
     fontWeight: "bold",
- 
-   
-   
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
 
-delete:{ color:"red"},
+  delete: { color: "red" },
 
-edit:{
-  color:"blue", 
+  edit: { color: "blue" },
+
   
-},
+  listMenuButton: {
+    marginLeft: "auto",
+  },
 
-  button:{
-   marginLeft:"250px"
+  itemMenuButton: {
+    marginLeft: "8px",
   },
 
   listItem: {
@@ -85,15 +79,20 @@ edit:{
     borderRadius: "4px",
     cursor: "pointer",
     width: "100%",
-   
-    
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "8px 16px",
+    height: "auto", 
+    minHeight: "100px", 
   },
 
   addItemButton: {
-    marginBottom: "8px",
+    marginTop: "8px",
     backgroundColor: "#f0f0f0",
     color: "#333",
-    
+    height: "auto", 
+    minHeight: "80px", 
   },
 };
 
