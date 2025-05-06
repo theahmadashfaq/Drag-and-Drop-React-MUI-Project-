@@ -6,12 +6,22 @@ const styles = {
     color: "white",
     paddingBottom: "5px",
   },
+line:{
+  textAlign:"center", marginTop:"150px", color:"black" 
+},
+
+
+line1:{
+  fontSize:"3rem",
+  
+},
 
   headerContainer: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     padding: "16px 24px",
+   
   },
 
   titleTypography: {

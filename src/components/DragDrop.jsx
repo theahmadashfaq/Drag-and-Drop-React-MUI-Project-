@@ -10,7 +10,7 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -20,21 +20,14 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import AddIcon from '@mui/icons-material/Add';
 
 export const DragDrop = () => {
-  const initialItems = ["Item 1", "Item 2", "Item 3", "Item 4"];
-  const middleItems = ["Item 5", "Item 6", "Item 7", "Item 8"];
-  const finalItems = ["Item 9", "Item 10", "Item 11", "Item 12"];
-
-  const [list1, setList1] = useState([...initialItems]);
-  const [list2, setList2] = useState([...middleItems]);
-  const [list3, setList3] = useState([...finalItems]);
+  const [isHidden, setIsHidden] = useState(false);
 
   // State for custom lists
   const [customLists, setCustomLists] = useState([]);
-  const customListCounter = useRef(0); // Ref to generate unique IDs for custom lists
+  const customListCounter = useRef(0);
 
   const [draggedItem, setDraggedItem] = useState(null);
   const [draggedListId, setDraggedListId] = useState(null);
-  const [listPositions, setListPositions] = useState([1, 2, 3]);
 
   const [openNewListDialog, setOpenNewListDialog] = useState(false);
   const [openAddItemDialog, setOpenAddItemDialog] = useState(false);
@@ -43,7 +36,7 @@ export const DragDrop = () => {
   const [newItemText, setNewItemText] = useState("");
   const [currentCustomListIndex, setCurrentCustomListIndex] = useState(null);
   const [editingListTitle, setEditingListTitle] = useState("");
-  const [editListIndex, setEditListIndex] = useState(null); // New state for tracking which list is being edited
+  const [editListIndex, setEditListIndex] = useState(null);
 
   // Menu state for lists
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
@@ -69,6 +62,11 @@ export const DragDrop = () => {
 
   const dragItemIndex = useRef(null);
   const dragOverItemIndex = useRef(null);
+
+  // Effect to update isHidden state based on customLists length
+  useEffect(() => {
+    setIsHidden(customLists.length > 0);
+  }, [customLists]);
 
   const handleDragEnter = (e, index) => {
     dragOverItemIndex.current = index;
@@ -99,13 +97,6 @@ export const DragDrop = () => {
 
       updatedCustomLists[customListIndex].items = customListItems;
       setCustomLists(updatedCustomLists);
-    } else if (typeof draggedListId === "number") {
-      const lists = { 1: [...list1], 2: [...list2], 3: [...list3] };
-      const setLists = { 1: setList1, 2: setList2, 3: setList3 };
-      const newList = lists[draggedListId];
-      const [draggedItemValue] = newList.splice(dragItemIndex.current, 1);
-      newList.splice(dragOverItemIndex.current, 0, draggedItemValue);
-      setLists[draggedListId](newList);
     }
 
     dragItemIndex.current = null;
@@ -127,39 +118,15 @@ export const DragDrop = () => {
 
   const handleItemDrop = (targetListId) => {
     if (draggedItem && draggedListId !== targetListId) {
-      const allLists = { 1: list1, 2: list2, 3: list3 };
-      const setAllLists = { 1: setList1, 2: setList2, 3: setList3 };
-
-      // Dropping to a default list
-      if (typeof targetListId === "number") {
-        // Remove from source
-        if (
-          typeof draggedListId === "string" &&
-          draggedListId.startsWith("custom")
-        ) {
-          const customListIndex = parseInt(draggedListId.split("-")[1]);
-          const updatedCustomLists = [...customLists];
-          updatedCustomLists[customListIndex].items = updatedCustomLists[
-            customListIndex
-          ].items.filter((item) => item !== draggedItem);
-          setCustomLists(updatedCustomLists);
-        } else if (typeof draggedListId === "number") {
-          setAllLists[draggedListId](
-            allLists[draggedListId].filter((i) => i !== draggedItem)
-          );
-        }
-        // Add to target
-        setAllLists[targetListId]([...allLists[targetListId], draggedItem]);
-      }
       // Dropping to a custom list
-      else if (
+      if (
         typeof targetListId === "string" &&
         targetListId.startsWith("custom")
       ) {
         const targetCustomListIndex = parseInt(targetListId.split("-")[1]);
         const updatedCustomLists = [...customLists];
 
-        // Remove from source
+        // Remove from source if it's from a custom list
         if (
           typeof draggedListId === "string" &&
           draggedListId.startsWith("custom")
@@ -168,11 +135,8 @@ export const DragDrop = () => {
           updatedCustomLists[sourceCustomListIndex].items = updatedCustomLists[
             sourceCustomListIndex
           ].items.filter((item) => item !== draggedItem);
-        } else if (typeof draggedListId === "number") {
-          setAllLists[draggedListId](
-            allLists[draggedListId].filter((i) => i !== draggedItem)
-          );
         }
+        
         // Add to target
         updatedCustomLists[targetCustomListIndex].items.push(draggedItem);
         setCustomLists(updatedCustomLists);
@@ -183,23 +147,12 @@ export const DragDrop = () => {
 
   const handleListDrop = (targetListId) => {
     if (!draggedItem && draggedListId && draggedListId !== targetListId) {
-      const isDraggedDefault = typeof draggedListId === "number";
-      const isTargetDefault = typeof targetListId === "number";
       const isDraggedCustom =
         typeof draggedListId === "string" && draggedListId.startsWith("custom");
       const isTargetCustom =
         typeof targetListId === "string" && targetListId.startsWith("custom");
 
-      if (isDraggedDefault && isTargetDefault) {
-        const sourceIndex = listPositions.indexOf(parseInt(draggedListId));
-        const targetIndex = listPositions.indexOf(parseInt(targetListId));
-        if (sourceIndex !== -1 && targetIndex !== -1) {
-          const newPositions = [...listPositions];
-          newPositions[sourceIndex] = parseInt(targetListId);
-          newPositions[targetIndex] = parseInt(draggedListId);
-          setListPositions(newPositions);
-        }
-      } else if (isDraggedCustom && isTargetCustom) {
+      if (isDraggedCustom && isTargetCustom) {
         const draggedIndex = customLists.findIndex(
           (list) => list.id === draggedListId
         );
@@ -235,13 +188,15 @@ export const DragDrop = () => {
   };
 
   const handleAddNewList = () => {
-    const newCustomList = {
-      id: `custom-${customListCounter.current++}`,
-      title: newListTitle,
-      items: [],
-    };
-    setCustomLists([...customLists, newCustomList]);
-    handleCloseNewListDialog();
+    if (newListTitle.trim() !== "") {
+      const newCustomList = {
+        id: `custom-${customListCounter.current++}`,
+        title: newListTitle,
+        items: [],
+      };
+      setCustomLists([...customLists, newCustomList]);
+      handleCloseNewListDialog();
+    }
   };
 
   const handleOpenAddItemDialog = (index) => {
@@ -257,7 +212,7 @@ export const DragDrop = () => {
   };
 
   const handleAddNewItem = () => {
-    if (currentCustomListIndex !== null) {
+    if (currentCustomListIndex !== null && newItemText.trim() !== "") {
       const updatedCustomLists = [...customLists];
       updatedCustomLists[currentCustomListIndex].items.push(newItemText);
       setCustomLists(updatedCustomLists);
@@ -276,7 +231,6 @@ export const DragDrop = () => {
     setActiveListIndex(index);
   };
 
-
   const handleMenuClose = () => {
     setMenuAnchorEl(null);
     setActiveListIndex(null);
@@ -285,7 +239,7 @@ export const DragDrop = () => {
   // Item Menu handlers
   const handleItemMenuOpen = (event, listId, itemIndex) => {
     event.stopPropagation();
-    event.preventDefault(); // Prevent dragging when clicking on menu
+    event.preventDefault(); 
     setItemMenuAnchorEl(event.currentTarget);
     setActiveItemListId(listId);
     setActiveItemIndex(itemIndex);
@@ -354,14 +308,11 @@ export const DragDrop = () => {
       if (typeof activeItemListId === "string" && activeItemListId.startsWith("custom")) {
         const customListIndex = parseInt(activeItemListId.split("-")[1]);
         currentItemText = customLists[customListIndex].items[activeItemIndex];
-      } else if (typeof activeItemListId === "number") {
-        const lists = { 1: list1, 2: list2, 3: list3 };
-        currentItemText = lists[activeItemListId][activeItemIndex];
       }
       
       setEditingItemText(currentItemText);
-      setEditingItemListId(activeItemListId); // Store list ID for when dialog closes
-      setEditingItemIndex(activeItemIndex); // Store item index for when dialog closes
+      setEditingItemListId(activeItemListId);
+      setEditingItemIndex(activeItemIndex);
       setOpenEditItemDialog(true);
       handleItemMenuClose();
     }
@@ -381,11 +332,6 @@ export const DragDrop = () => {
         const updatedCustomLists = [...customLists];
         updatedCustomLists[customListIndex].items[editingItemIndex] = editingItemText;
         setCustomLists(updatedCustomLists);
-      } else if (typeof editingItemListId === "number") {
-        const lists = { 1: [...list1], 2: [...list2], 3: [...list3] };
-        const setLists = { 1: setList1, 2: setList2, 3: setList3 };
-        lists[editingItemListId][editingItemIndex] = editingItemText;
-        setLists[editingItemListId](lists[editingItemListId]);
       }
       
       handleCloseEditItemDialog();
@@ -394,8 +340,8 @@ export const DragDrop = () => {
 
   // Delete item handlers
   const handleOpenDeleteItemConfirm = () => {
-    setDeleteItemListId(activeItemListId); // Store list ID for when dialog closes
-    setDeleteItemIndex(activeItemIndex); // Store item index for when dialog closes
+    setDeleteItemListId(activeItemListId);
+    setDeleteItemIndex(activeItemIndex);
     setOpenDeleteItemConfirmDialog(true);
     handleItemMenuClose();
   };
@@ -415,27 +361,9 @@ export const DragDrop = () => {
         updatedCustomLists[customListIndex].items.splice(deleteItemIndex, 1);
         setCustomLists(updatedCustomLists);
       }
-      else if (typeof deleteItemListId === "number") 
-      {
-        const lists = { 1: [...list1], 2: [...list2], 3: [...list3] };
-        const setLists = { 1: setList1, 2: setList2, 3: setList3 };
-        lists[deleteItemListId].splice(deleteItemIndex, 1);
-        setLists[deleteItemListId](lists[deleteItemListId]);
-      }
       
       handleCloseDeleteItemConfirm();
     }
-  }; 
-
-  const getListItems = (listId) => {
-    if (listId === 1) return list1;
-    if (listId === 2) return list2;
-    if (listId === 3) return list3;
-    if (typeof listId === "string" && listId.startsWith("custom")) {
-      const customListIndex = parseInt(listId.split("-")[1]);
-      return customLists[customListIndex]?.items || [];
-    }
-    return [];
   };
 
   return (
@@ -452,12 +380,11 @@ export const DragDrop = () => {
         >
           Add List
         </Button>
-
-        <Dialog open={openNewListDialog} onClose={handleCloseNewListDialog}>
+       
+        <Dialog open={openNewListDialog} onClose={handleCloseNewListDialog} fullWidth maxWidth="sm">
           <DialogTitle>Add Title of a New List</DialogTitle>
           <DialogContent>
             <TextField
-              
               margin="dense"
               fullWidth
               placeholder="Please add a Title"
@@ -470,7 +397,11 @@ export const DragDrop = () => {
             <Button onClick={handleCloseNewListDialog} sx={style.CANCELColor}>
               CANCEL
             </Button>
-            <Button onClick={handleAddNewList} sx={style.addColor} >
+            <Button 
+              onClick={handleAddNewList} 
+              sx={style.addColor}
+              disabled={!newListTitle.trim()}
+            >
               Add
             </Button>
           </DialogActions>
@@ -537,22 +468,28 @@ export const DragDrop = () => {
               ))}
             </List>
            
-           
             <Button
               size="small"
               variant="contained"
               onClick={() => handleOpenAddItemDialog(index)}
               sx={style.addItemButton}
             >
-               <IconButton><AddIcon/></IconButton>
-             Add Item
+              <IconButton><AddIcon/></IconButton>
+              Add Item
             </Button>
-            
-            
           </Box>
         ))}
       </Box>
-
+      
+      {/* Main text that shows only when there are no custom lists */}
+      {!isHidden && (
+        <Box sx={style.line}>
+          <Typography sx={style.line1}>
+            Add a List to drag
+          </Typography>
+        </Box>
+      )}
+      
       {/* Menu for list options */}
       <Menu
         id="list-menu"
@@ -632,7 +569,6 @@ export const DragDrop = () => {
         <DialogTitle>Add New Item</DialogTitle>
         <DialogContent>
           <TextField
-            
             value={newItemText}
             onChange={handleNewItemInputChange}
             margin="dense"
@@ -645,7 +581,11 @@ export const DragDrop = () => {
           <Button onClick={handleCloseAddItemDialog} sx={style.CANCELColor}>
             CANCEL
           </Button>
-          <Button onClick={handleAddNewItem} sx={style.addColor} >
+          <Button 
+            onClick={handleAddNewItem} 
+            sx={style.addColor}
+            disabled={!newItemText.trim()}
+          >
             ADD
           </Button>
         </DialogActions>
@@ -661,7 +601,6 @@ export const DragDrop = () => {
         <DialogTitle>Edit List Title</DialogTitle>
         <DialogContent>
           <TextField
-            
             margin="dense"
             fullWidth
             label="List Title"
@@ -678,7 +617,6 @@ export const DragDrop = () => {
           <Button 
             onClick={handleSaveEditList} 
             sx={style.addColor} 
-            
             disabled={!editingListTitle.trim()}
           >
             Save
@@ -695,7 +633,6 @@ export const DragDrop = () => {
         <DialogTitle>Edit Item</DialogTitle>
         <DialogContent>
           <TextField
-            
             margin="dense"
             fullWidth
             label="Item Text"
@@ -712,7 +649,6 @@ export const DragDrop = () => {
           <Button 
             onClick={handleSaveEditItem} 
             sx={style.addColor} 
-            
             disabled={!editingItemText.trim()}
           >
             Save
